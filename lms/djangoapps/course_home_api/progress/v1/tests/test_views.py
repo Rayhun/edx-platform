@@ -183,3 +183,20 @@ class ProgressTabTestViews(BaseCourseHomeTests):
         assert ungraded_score['learner_has_access']
         assert not gated_score['learner_has_access']
         assert ungated_score['learner_has_access']
+
+    @override_waffle_flag(COURSE_HOME_MICROFRONTEND_PROGRESS_TAB, active=True)
+    def test_view_other_students_progress_page(self):
+        # Test the ability to view progress pages of other students by changing the url
+        CourseEnrollment.enroll(self.user, self.course.id)
+        response = self.client.get(self.url)
+        assert response.data['username'] == self.user.username
+
+        self.switch_to_staff()  # the user needs access to view other students' progress pages
+
+        other_user = UserFactory()
+        self.url = reverse('course-home-progress-tab-other-student', args=[self.course.id, other_user.id])
+        response = self.client.get(self.url)
+
+        CourseEnrollment.enroll(other_user, self.course.id)
+
+        assert response.data['username'] == other_user.username
